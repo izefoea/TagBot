@@ -451,9 +451,11 @@ class Repo:
                 "skipping error reporting"
             )
             return
-
-        if is_private or os.getenv("GITHUB_ACTIONS") != "true":
-            logger.debug("Not reporting")
+        env_actions = os.getenv("GITHUB_ACTIONS")
+        if is_private or env_actions != "true":
+            logger.debug(
+                f"Not reporting (private={is_private}, GITHUB_ACTIONS={env_actions})"
+            )
             return
         logger.debug("Reporting error")
         data = {
@@ -462,8 +464,17 @@ class Repo:
             "run": self._run_url(),
             "stacktrace": trace,
         }
-        resp = requests.post(f"{TAGBOT_WEB}/report", json=data)
-        output = json.dumps(resp.json(), indent=2)
+        endpoint = os.getenv("TAGBOT_ERROR_ENDPOINT") or f"{TAGBOT_WEB}/report"
+        logger.debug(f"Selected error endpoint: {endpoint}")
+        logger.debug(
+            f"Report payload prepared: repo={data['repo']}, image={data['image']}, run={data['run']}, stacktrace_len={len(data['stacktrace'])}"
+        )
+        resp = requests.post(endpoint, json=data)
+        try:
+            output = json.dumps(resp.json(), indent=2)
+        except Exception:
+            logger.debug("Response is not JSON; using raw text")
+            output = resp.text
         logger.info(f"Response ({resp.status_code}): {output}")
 
     def is_registered(self) -> bool:
