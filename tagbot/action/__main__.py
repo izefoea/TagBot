@@ -66,6 +66,11 @@ try:
         tag_prefix=get_input("tag_prefix"),
     )
 
+    repro_early_ssh = os.getenv("TAGBOT_REPRO_EARLY_SSH")
+    if repro_early_ssh in ["true", "yes", "1"] and ssh:
+        logger.debug("TAGBOT_REPRO_EARLY_SSH enabled; configuring SSH early")
+        repo.configure_ssh(ssh, get_input("ssh_password"))
+
     if not repo.is_registered():
         logger.info("This package is not registered, skipping")
         logger.info(
